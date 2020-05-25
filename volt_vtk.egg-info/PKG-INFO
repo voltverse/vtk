@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: volt-vtk
+Version: 0.1.0
+Summary: Volt Toolkit, a Python library for creating consistent user interfaces in terminals.
+Home-page: https://github.com/voltverse/vtk
+Author: Volt Project
+License: UNKNOWN
+Description: # Volt Toolkit (VTK)
+        Volt Toolkit, a Python library for creating consistent user interfaces in
+        terminals.
+        
+        * This project is licensed by the MIT License, found at
+          [LICENCE.md](licence.md).
+        * The language used in this project is English (United Kingdom), with the
+          exception of translation files.
+        * Everyone is welcome to contribute ─ whether you're new to coding, or you're a
+          pro at it!
+        
+        ## Installation
+        VTK can be installed by running [setup.py](setup.py) in Python (must be at least
+        version 3.5).
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >= 3.5
+Description-Content-Type: text/markdown
