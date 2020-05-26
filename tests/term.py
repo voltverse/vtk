@@ -1,7 +1,6 @@
 import vtk.term
 import vtk.styles
 
-vtk.term.clearScreen(vtk.term.ENUM_CLEAR_MODE_HISTORY)
 vtk.term.clearScreen()
 vtk.term.moveCursorTo(0, 0)
 vtk.term.hideCursor()
@@ -70,7 +69,6 @@ try:
                 cursorX = max(len(topRow) - 1, len(bottomRow) - 1)
 except KeyboardInterrupt:
     vtk.term.write(vtk.styles.Style_Reset().render())
-    vtk.term.clearScreen(vtk.term.ENUM_CLEAR_MODE_HISTORY)
     vtk.term.clearScreen()
     vtk.term.moveCursorTo(0, 0)
     vtk.term.showCursor()
