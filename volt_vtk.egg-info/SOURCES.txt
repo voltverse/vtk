@@ -7,3 +7,5 @@ volt_vtk.egg-info/top_level.txt
 vtk/__init__.py
 vtk/styles.py
 vtk/term.py
+vtk/theming.py
+vtk/ui.py

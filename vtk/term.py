@@ -1,6 +1,9 @@
 import time
+import shutil
 
 ESCAPE_CHARACTER = "\x1B"
+FALLBACK_TERMINAL_WIDTH = 80
+FALLBACK_TERMINAL_HEIGHT = 24
 
 ENUM_CLEAR_MODE_TO_START = 0
 ENUM_CLEAR_MODE_TO_END = 1
@@ -25,7 +28,7 @@ ENUM_KEY_F10 = ESCAPE_CHARACTER + "[21~"
 ENUM_KEY_F11 = ESCAPE_CHARACTER + "[23~"
 ENUM_KEY_F12 = ESCAPE_CHARACTER + "[24~"
 
-KEY_TIMEOUT_RATE = 0.5
+KEY_TIMEOUT_RATE = 0.1
 
 class CharacterReader_Windows:
     def __init__(self):
@@ -174,6 +177,18 @@ def getKey(blocking = False):
             return ENUM_KEY_ESCAPE
     else:
         return firstCharacter
+
+"""
+Gets the size of the terminal. A dictionary containing the `width` and `height`
+is returned.
+"""
+def getTerminalSize():
+    size = shutil.get_terminal_size(fallback = (FALLBACK_TERMINAL_WIDTH, FALLBACK_TERMINAL_HEIGHT))
+
+    return {
+        "width": size.columns,
+        "height": size.lines
+    }
 
 """
 Moves the cursor up by `cells` cells.

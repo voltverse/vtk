@@ -10,5 +10,14 @@ terminals.
   pro at it!
 
 ## Installation
-VTK can be installed by running [setup.py](setup.py) in Python (must be at least
-version 3.5).
+VTK can be installed by running the following commands:
+
+Windows (you may need administrative priviledges):
+```batch
+py -3 setup.py install
+```
+
+Linux (you'll need to be a sudoer):
+```bash
+sudo python3 setup.py install
+```

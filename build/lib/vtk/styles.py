@@ -4,7 +4,7 @@ class Style:
     def __init__(self):
         self.code = 0
     
-    def render(self):
+    def _render(self):
         return "{}[{}m".format(term.ESCAPE_CHARACTER, self.code)
 
 class Style_Reset(Style):
@@ -53,11 +53,15 @@ class Colour(Style):
     def __init__(self):
         super()
 
-    def render(self, isForeground = True):
+    def _render(self, isForeground = True):
         if isForeground:
             return "{}[{}m".format(term.ESCAPE_CHARACTER, self.code)
         else:
             return "{}[{}m".format(term.ESCAPE_CHARACTER, self.code + 10)
+
+class Colour_Transparent(Colour):
+    def _render(self, isForeground = True):
+        return ""
 
 class Colour_Black(Colour):
     def __init__(self):
