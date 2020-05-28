@@ -1,3 +1,5 @@
+import math
+
 import vtk.term
 import vtk.theming
 
@@ -30,7 +32,7 @@ class Measurement:
         absoluteMeasurementValue = 0
 
         if self.relativeMeasurement != None:
-            absoluteMeasurementValue = self.relativeMeasurement.measure() * self.percentageLength
+            absoluteMeasurementValue = math.floor(self.relativeMeasurement.measure() * self.percentageLength)
         
         return absoluteMeasurementValue + self.deltaLength
 
@@ -86,6 +88,13 @@ class Application(Component):
         self.y = Measurement(0, 0)
         self.width = Measurement(0, vtk.term.getTerminalSize()["width"])
         self.height = Measurement(0, vtk.term.getTerminalSize()["height"])
+        self.innerWidth = Measurement(0, vtk.term.getTerminalSize()["width"])
+        self.innerHeight = Measurement(0, vtk.term.getTerminalSize()["height"])
+        self.padding = Measurement(0, 0)
+        self.paddingTop = Measurement(0, 0)
+        self.paddingBottom = Measurement(0, 0)
+        self.paddingLeft = Measurement(0, 0)
+        self.paddingRight = Measurement(0, 0)
     
     def _render(self, forceChange = False):
         for child in self.children:
@@ -102,15 +111,12 @@ class Application(Component):
 
             self._render(True)
 
-            while self.running: # Render loop
-                if self.width != Measurement(0, vtk.term.getTerminalSize()["width"]) or self.height != Measurement(0, vtk.term.getTerminalSize()["height"]):
-                    self.width = Measurement(0, vtk.term.getTerminalSize()["width"])
-                    self.height = Measurement(0, vtk.term.getTerminalSize()["height"])
+            forceNextRender = False
 
-                    self._render(True)
-                else:
-                    self._render()
-                
+            while self.running: # Render loop
+                self._render(forceNextRender)
+
+                forceNextRender = False
                 waitingForEvent = True
 
                 while waitingForEvent: # Event loop
@@ -130,6 +136,13 @@ class Application(Component):
 
                         self.running = False
                         waitingForEvent = False
+                    
+                    if self.width.measure() != vtk.term.getTerminalSize()["width"] or self.height.measure() != vtk.term.getTerminalSize()["height"]:
+                        self.width = Measurement(0, vtk.term.getTerminalSize()["width"])
+                        self.height = Measurement(0, vtk.term.getTerminalSize()["height"])
+
+                        waitingForEvent = False
+                        forceNextRender = True
         except Exception as e:
             vtk.term.write(vtk.styles.Style_Reset()._render())
             vtk.term.clearScreen()
@@ -145,10 +158,14 @@ class Widget(Component):
         super().__init__(parent)
 
         self._hasChanges = False
-        self._x = Measurement(0, 0, self.parent.x)
-        self._y = Measurement(0, 0, self.parent.y)
-        self._width = Measurement(1, 0, self.parent.width)
-        self._height = Measurement(1, 0, self.parent.height)
+        self._x = Measurement(0, 0, self.parent.innerWidth)
+        self._y = Measurement(0, 0, self.parent.innerHeight)
+        self._width = Measurement(1, 0, self.parent.innerWidth)
+        self._height = Measurement(1, 0, self.parent.innerHeight)
+        self._paddingTop = Measurement(0, 0, self.parent.innerHeight)
+        self._paddingBottom = Measurement(0, 0, self.parent.innerHeight)
+        self._paddingLeft = Measurement(0, 0, self.parent.innerWidth)
+        self._paddingRight = Measurement(0, 0, self.parent.innerWidth)
         self._backgroundColour = vtk.theming.backgroundColour
         self._foregroundColour = vtk.theming.foregroundColour
     
@@ -164,7 +181,12 @@ class Widget(Component):
             if placeDirection == PLACE_DIRECTION_NEXT_TO:
                 self.x = Measurement(0, self.parent.children[-1].x.measure() + self.parent.children[-1].width.measure() + placeMargin.measure())
                 self.y = Measurement(0, self.parent.children[-1].y.measure())
+
+                if self.getAbsolutePosition().x + self.width.measure() > vtk.term.getTerminalSize()["width"]:
+                    self.x = 0
+                    self.y = Measurement(0, self.parent.children[-1].y.measure() + self.parent.children[-1].height.measure() + placeMargin.measure())
             elif placeDirection == PLACE_DIRECTION_UNDER:
+                self.x = 0
                 self.y = Measurement(0, self.parent.children[-1].y.measure() + self.parent.children[-1].height.measure() + placeMargin.measure())
 
         super().place()
@@ -181,9 +203,9 @@ class Widget(Component):
             self._x = value
         else:
             if value >= 0:
-                self._x = Measurement(0, value, self.parent.x)
+                self._x = Measurement(0, value, self.parent.innerWidth)
             else:
-                self._x = Measurement(1, value, self.parent.width)
+                self._x = Measurement(1, value, self.parent.innerWidth)
     
     @property
     def y(self):
@@ -197,9 +219,9 @@ class Widget(Component):
             self._y = value
         else:
             if value >= 0:
-                self._y = Measurement(0, value, self.parent.y)
+                self._y = Measurement(0, value, self.parent.innerHeight)
             else:
-                self._y = Measurement(1, value, self.parent.height)
+                self._y = Measurement(1, value, self.parent.innerHeight)
     
     @property
     def width(self):
@@ -212,7 +234,7 @@ class Widget(Component):
         if type(value) == Measurement:
             self._width = value
         else:
-            self._width = Measurement(0, value, self.parent.width)
+            self._width = Measurement(0, value, self.parent.innerWidth)
     
     @property
     def height(self):
@@ -225,7 +247,105 @@ class Widget(Component):
         if type(value) == Measurement:
             self._height = value
         else:
-            self._height = Measurement(0, value, self.parent.height)
+            self._height = Measurement(0, value, self.parent.innerHeight)
+
+    @property
+    def innerWidth(self):
+        return Measurement(0, self.width.measure() - self.paddingLeft.measure() - self.paddingRight.measure(), self.parent.innerWidth)
+    
+    @innerWidth.setter
+    def innerWidth(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._width = Measurement(0, value.measure() - self.paddingLeft.measure() - self.paddingRight.measure(), self.parent.innerWidth)
+        else:
+            self._width = Measurement(0, value - self.paddingLeft.measure() - self.paddingRight.measure(), self.parent.innerWidth)
+
+    @property
+    def innerHeight(self):
+        return Measurement(0, self.width.measure() - self.paddingLeft.measure() - self.paddingRight.measure(), self.parent.innerHeight)
+    
+    @innerHeight.setter
+    def innerHeight(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._width = Measurement(0, value.measure() - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
+        else:
+            self._width = Measurement(0, value - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
+
+    @property
+    def padding(self):
+        return max(self._paddingTop, self._paddingBottom, self._paddingLeft, self._paddingRight)
+    
+    @padding.setter
+    def padding(self, value):
+        self._hasChanges = True
+
+        padding = 0
+
+        if type(value) == Measurement:
+            padding = value
+        else:
+            padding = Measurement(0, value, self.parent.padding)
+
+        self._paddingTop = padding
+        self._paddingBottom = padding
+        self._paddingLeft = padding
+        self._paddingRight = padding
+    
+    @property
+    def paddingTop(self):
+        return self._paddingTop
+
+    @paddingTop.setter
+    def paddingTop(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._paddingTop = value
+        else:
+            self._paddingTop = Measurement(0, value, self.parent.paddingTop)
+    
+    @property
+    def paddingBottom(self):
+        return self._paddingBottom
+    
+    @paddingBottom.setter
+    def paddingTop(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._paddingBottom = value
+        else:
+            self._paddingBottom = Measurement(0, value, self.parent.paddingBottom)
+
+    @property
+    def paddingLeft(self):
+        return self._paddingLeft
+    
+    @paddingLeft.setter
+    def paddingLeft(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._paddingLeft = value
+        else:
+            self._paddingLeft = Measurement(0, value, self.parent.paddingLeft)
+
+    @property
+    def paddingRight(self):
+        return self._paddingRight
+
+    @paddingRight.setter
+    def paddingRight(self, value):
+        self._hasChanges = True
+
+        if type(value) == Measurement:
+            self._paddingRight = value
+        else:
+            self._paddingRight = Measurement(0, value, self.parent.paddingRight)
 
     @property
     def backgroundColour(self):
@@ -251,14 +371,19 @@ class Widget(Component):
         currentElement = self
 
         while type(currentElement) != Application:
-            absoluteX += currentElement.x.measure()
-            absoluteY += currentElement.y.measure()
+            absoluteX += currentElement.paddingLeft.measure() + currentElement.x.measure()
+            absoluteY += currentElement.paddingTop.measure() + currentElement.y.measure()
 
             currentElement = currentElement.parent
         
         return Point(absoluteX, absoluteY)
 
 class Screen(Widget):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.padding = 1
+
     def _render(self):
         vtk.term.write(
             vtk.styles.Style_Reset()._render() +

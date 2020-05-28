@@ -8,9 +8,12 @@ label2 = vtk.ui.Label(screen, text = "Testing!")
 
 screen.backgroundColour = vtk.styles.Colour_DarkBlue()
 
-label.x = 1
-label.y = 1
+screen.padding = 10
+
 label.width = 10
+label2.width = 10
+
+label.width = vtk.ui.Measurement(0.5, 0, screen.innerWidth)
 
 screen.place()
 label.place()
