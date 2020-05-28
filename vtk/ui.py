@@ -1,6 +1,10 @@
 import vtk.term
 import vtk.theming
 
+PLACE_DIRECTION_FREE = -1
+PLACE_DIRECTION_NEXT_TO = 0
+PLACE_DIRECTION_UNDER = 1
+
 class Event:
     def __init__(self):
         pass
@@ -26,7 +30,7 @@ class Measurement:
         absoluteMeasurementValue = 0
 
         if self.relativeMeasurement != None:
-            absoluteMeasurementValue = self.relativeMeasurement.measure()
+            absoluteMeasurementValue = self.relativeMeasurement.measure() * self.percentageLength
         
         return absoluteMeasurementValue + self.deltaLength
 
@@ -154,6 +158,16 @@ class Widget(Component):
                 child._hasChanges = True
 
             child._render()
+    
+    def place(self, placeDirection = PLACE_DIRECTION_NEXT_TO, placeMargin = Measurement(0, 1)):
+        if len(self.parent.children) > 0:
+            if placeDirection == PLACE_DIRECTION_NEXT_TO:
+                self.x = Measurement(0, self.parent.children[-1].x.measure() + self.parent.children[-1].width.measure() + placeMargin.measure())
+                self.y = Measurement(0, self.parent.children[-1].y.measure())
+            elif placeDirection == PLACE_DIRECTION_UNDER:
+                self.y = Measurement(0, self.parent.children[-1].y.measure() + self.parent.children[-1].height.measure() + placeMargin.measure())
+
+        super().place()
     
     @property
     def x(self):
