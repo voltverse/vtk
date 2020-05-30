@@ -1,4 +1,5 @@
 import math
+import textwrap
 
 import vtk.term
 import vtk.theming
@@ -168,7 +169,7 @@ class Widget(Component):
         self._paddingRight = Measurement(0, 0, self.parent.innerWidth)
         self._backgroundColour = vtk.theming.backgroundColour
         self._foregroundColour = vtk.theming.foregroundColour
-    
+
     def _render(self):
         for child in self.children:
             if self._hasChanges:
@@ -264,7 +265,7 @@ class Widget(Component):
 
     @property
     def innerHeight(self):
-        return Measurement(0, self.width.measure() - self.paddingLeft.measure() - self.paddingRight.measure(), self.parent.innerHeight)
+        return Measurement(0, self.height.measure() - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
     
     @innerHeight.setter
     def innerHeight(self, value):
@@ -277,7 +278,7 @@ class Widget(Component):
 
     @property
     def padding(self):
-        return max(self._paddingTop, self._paddingBottom, self._paddingLeft, self._paddingRight)
+        return Measurement(0, max(self._paddingTop.measure(), self._paddingBottom.measure(), self._paddingLeft.measure(), self._paddingRight.measure()))
     
     @padding.setter
     def padding(self, value):
@@ -371,8 +372,12 @@ class Widget(Component):
         currentElement = self
 
         while type(currentElement) != Application:
-            absoluteX += currentElement.paddingLeft.measure() + currentElement.x.measure()
-            absoluteY += currentElement.paddingTop.measure() + currentElement.y.measure()
+            if currentElement == self:
+                absoluteX += currentElement.x.measure()
+                absoluteY += currentElement.y.measure()
+            else:
+                absoluteX += currentElement.x.measure() + currentElement.paddingLeft.measure()
+                absoluteY += currentElement.y.measure() + currentElement.paddingTop.measure()
 
             currentElement = currentElement.parent
         
@@ -395,7 +400,19 @@ class Screen(Widget):
 
         super()._render()
 
-class Label(Widget):
+class Box(Widget):
+    def _render(self):        
+        for i in range(0, self.height.measure()):
+            vtk.term.moveCursorTo(self.getAbsolutePosition().x, self.getAbsolutePosition().y + i)
+            vtk.term.write(
+                self.backgroundColour._render(False) +
+                self.foregroundColour._render(True) +
+                " " * self.width.measure()
+            )
+        
+        super()._render()
+        
+class Label(Box):
     def __init__(self, parent, text = ""):
         super().__init__(parent)
 
@@ -403,11 +420,15 @@ class Label(Widget):
         self.text = text
 
     def _render(self):
-        vtk.term.moveCursorTo(self.getAbsolutePosition().x, self.getAbsolutePosition().y)
-        vtk.term.write(
-            self.backgroundColour._render(False) +
-            self.foregroundColour._render(True) +
-            self.text[:self.width.measure()]
-        )
-
         super()._render()
+
+        textWrapper = textwrap.TextWrapper(width = self.innerWidth.measure())
+        wrappedTextLines = textWrapper.wrap(text = self.text)
+
+        for i in range(0, min(len(wrappedTextLines), self.innerHeight.measure())):
+            vtk.term.moveCursorTo(self.getAbsolutePosition().x + self.paddingLeft.measure(), self.getAbsolutePosition().y + self.paddingTop.measure() + i)
+            vtk.term.write(
+                self.backgroundColour._render(False) +
+                self.foregroundColour._render(True) +
+                wrappedTextLines[i]
+            )
