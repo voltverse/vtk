@@ -8,6 +8,10 @@ PLACE_DIRECTION_FREE = -1
 PLACE_DIRECTION_NEXT_TO = 0
 PLACE_DIRECTION_UNDER = 1
 
+RESIZE_DIRECTION_WIDTH =    0b00000001
+RESIZE_DIRECTION_HEIGHT =   0b00000010
+RESIZE_DIRECTION_BOTH = RESIZE_DIRECTION_WIDTH | RESIZE_DIRECTION_HEIGHT
+
 class Event:
     def __init__(self):
         pass
@@ -192,6 +196,25 @@ class Widget(Component):
 
         super().place()
     
+    def resizeToContent(self, resizeDirection = RESIZE_DIRECTION_BOTH):
+        if resizeDirection & RESIZE_DIRECTION_WIDTH:
+            furthestObject = 0
+
+            for child in self.children:
+                if child.x.measure() + child.width.measure() > furthestObject:
+                    furthestObject = child.x.measure() + child.width.measure()
+            
+            self.innerWidth = furthestObject
+        
+        if resizeDirection & RESIZE_DIRECTION_HEIGHT:
+            furthestObject = 0
+
+            for child in self.children:
+                if child.y.measure() + child.height.measure() > furthestObject:
+                    furthestObject = child.y.measure() + child.height.measure()
+            
+            self.innerHeight = furthestObject
+
     @property
     def x(self):
         return self._x
@@ -272,9 +295,9 @@ class Widget(Component):
         self._hasChanges = True
 
         if type(value) == Measurement:
-            self._width = Measurement(0, value.measure() - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
+            self._height = Measurement(0, value.measure() - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
         else:
-            self._width = Measurement(0, value - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
+            self._height = Measurement(0, value - self.paddingTop.measure() - self.paddingBottom.measure(), self.parent.innerHeight)
 
     @property
     def padding(self):
@@ -419,6 +442,25 @@ class Label(Box):
         self.backgroundColour = vtk.styles.Colour_Transparent()
         self.text = text
 
+        self.resizeToContent()
+
+    def resizeToContent(self, resizeDirection = RESIZE_DIRECTION_HEIGHT):
+        if resizeDirection & RESIZE_DIRECTION_WIDTH:
+            unwrappedTextLines = self.text.split("\n")
+            longestTextLineLength = 0
+
+            for line in unwrappedTextLines:
+                if len(line) > longestTextLineLength:
+                    longestTextLineLength = len(line)
+
+            self.innerWidth = longestTextLineLength
+
+        if resizeDirection & RESIZE_DIRECTION_HEIGHT:
+            textWrapper = textwrap.TextWrapper(width = self.innerWidth.measure())
+            wrappedTextLines = textWrapper.wrap(text = self.text)
+
+            self.innerHeight = len(wrappedTextLines)
+
     def _render(self):
         super()._render()
 
@@ -431,4 +473,33 @@ class Label(Box):
                 self.backgroundColour._render(False) +
                 self.foregroundColour._render(True) +
                 wrappedTextLines[i]
+            )
+
+class Button(Label):
+    def __init__(self, parent, text = ""):
+        super().__init__(parent)
+
+        self.backgroundColour = vtk.theming.buttonBackgroundColour
+        self.foregroundColour = vtk.theming.buttonForegroundColour
+        self.text = text
+
+        self.resizeToContent(resizeDirection = RESIZE_DIRECTION_BOTH)
+    
+    def _render(self):
+        super()._render()
+
+        textWrapper = textwrap.TextWrapper(width = self.innerWidth.measure())
+        wrappedTextLines = textWrapper.wrap(text = self.text)
+        longestTextLineLength = 0
+
+        for line in wrappedTextLines:
+            if len(line) > longestTextLineLength:
+                longestTextLineLength = len(line)
+
+        for i in range(0, min(len(wrappedTextLines), self.innerHeight.measure())):
+            vtk.term.moveCursorTo(self.getAbsolutePosition().x + self.paddingLeft.measure(), self.getAbsolutePosition().y + self.paddingTop.measure() + i)
+            vtk.term.write(
+                self.backgroundColour._render(False) +
+                self.foregroundColour._render(True) +
+                (" " * ((longestTextLineLength - len(wrappedTextLines[i])) // 2)) + wrappedTextLines[i]
             )
